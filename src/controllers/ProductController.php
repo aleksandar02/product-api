@@ -3,14 +3,11 @@
 namespace Api\Controller;
 
 require '../config/Database.php';
-require "../models/Book.php";
-require "../models/DVD.php";
-require "../models/Furniture.php";
+require "../factories/ProductFactory.php";
 
+use PDO;
 use Api\Config\Database;
-use Api\Model\Book;
-use Api\Model\DVD;
-use Api\Model\Furniture;
+use Api\Factory\ProductFactory;
 
 class ProductController
 {
@@ -24,33 +21,54 @@ class ProductController
     public function create($jsonData) {
         $productType = $jsonData->type;
 
-        if ($productType == 1) {
-            $book = new Book($this->conn);
+        $productFactory = new ProductFactory();
+        $product = $productFactory->createProduct($productType, $this->conn);
 
-            $this->sendOutput($book->create($jsonData));
-        
-        } else if ($productType == 2) {
-            $dvd = new DVD($this->conn);
+        $result = $product->create($jsonData);
 
-            $this->sendOutput($dvd->create($jsonData));
-
-        } else if ($productType == 3) {
-            $furniture = new Furniture($this->conn);
-            
-            $this->sendOutput($furniture->create($jsonData));
+        if ($result["success"] == true) {
+            http_response_code(200);
+        } else {
+            http_response_code(503);
         }
+
+        echo json_encode($result);
     }
 
-    private function sendOutput($result) {
-        if ($result) {
-            http_response_code(201);
+    public function read() {
+        try {
+            $selectProductsQuery = "SELECT p.id, p.sku, p.name, p.price, p.type, pa.weight, pa.size, pa.width, pa.height, pa.length FROM product AS p INNER JOIN productattributes AS pa ON p.id = pa.productId WHERE p.id = pa.productId";
 
-            echo json_encode(array('message' => 'Product Created Successfully!', 'created' => 'true'));
-        } else {
-            // set response code - 503 service unavailable
+            $selectProductsStmt = $this->conn->query($selectProductsQuery);
+    
+            $products = $selectProductsStmt->fetchAll(PDO::FETCH_ASSOC);
+    
+            echo json_encode($products);        
+            
+        } catch (\Exception $e) {
             http_response_code(503);
+            echo json_encode(array("message" => "Something went wrong!", "success" => false));
+        } 
+    }
 
-            echo json_encode(array('message' => 'Unable to create the Product!', 'created' => 'false'));
+    public function massDelete($jsonData) {
+        try {
+            $productIds = $jsonData->ids;
+
+            $productIdsToString = implode(", ", $productIds);
+          
+            $deleteProductQuery = "DELETE FROM product WHERE id IN (" . $productIdsToString . ")";
+
+            $deleteProductStmt = $this->conn->prepare($deleteProductQuery);
+            
+            $deleteProductStmt->execute();
+
+            http_response_code(200);
+            echo json_encode(array("message" => "Products are successfully deleted!", "success" => true));
+
+        } catch (\Exception $e) {
+            http_response_code(503);
+            echo json_encode(array("message" => "Something went wrong!", "success" => false));
         }
     }
 }

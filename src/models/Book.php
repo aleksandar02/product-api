@@ -3,13 +3,8 @@
 namespace Api\Model;
 
 require_once "Product.php";
-require_once "../validation/ValidateInterface.php";
-require_once "../validation/ProductValidator.php";
 
-use Api\Validation\ValidateInterface;
-use Api\Validation\ProductValidator;
-
-class Book extends Product implements ValidateInterface
+class Book extends Product
 {
     public $weight;
 
@@ -18,26 +13,33 @@ class Book extends Product implements ValidateInterface
     }
 
     public function create($jsonData) {
-        echo "Creating Book!";
+        try {
+            $this->conn->beginTransaction();
 
-        $this->SKU = htmlspecialchars(strip_tags($jsonData->SKU));
-        $this->name = htmlspecialchars(strip_tags($jsonData->name));
-        $this->price = htmlspecialchars(strip_tags($jsonData->price));
-        $this->type = htmlspecialchars(strip_tags($jsonData->type));
-        $this->weight = htmlspecialchars(strip_tags($jsonData->weight));
+            $this->weight = htmlspecialchars(strip_tags(floatval($jsonData->weight)));
 
-        $productValidator = new ProductValidator();
-        $message = $productValidator->validate($this);
+            $productId = $this->insertProductDetails($jsonData);
 
-        // After validation insert in db
+            if ($this->weight > 0 == false) {
+                throw new \Exception("Weight value must be greater than 0!");
+            }
 
-        // Other classes need to implement ValidateInterface
+            $insertProductAttributesQuery = "INSERT INTO productattributes (productId, weight) VALUES(:productId, :weight)";
 
-        return true;
-    }
+            $insertProductAttributesStmt = $this->conn->prepare($insertProductAttributesQuery);
+            $insertProductAttributesStmt->execute([
+                'productId' => $productId,
+                'weight' => $this->weight
+            ]);
 
-    public function validateAttribute()
-    {
-        echo "Validating weight!";
+            $this->conn->commit();
+
+            return array("message" => "Product created successfully!", "success" => true);
+
+        } catch (\Exception $e) {
+            $this->conn->rollback();
+
+            return array("message" => $e->getMessage(), "success" => false);
+        }
     }
 }
