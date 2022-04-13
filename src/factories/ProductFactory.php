@@ -12,7 +12,8 @@ use Api\Model\Furniture;
 
 class ProductFactory
 {
-    public function createProduct($type, $conn) {
+    public function createProduct($type, $conn) 
+    {
         switch ($type) {
             case 1:
                 return new Book($conn);

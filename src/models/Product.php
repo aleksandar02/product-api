@@ -14,7 +14,8 @@ abstract class Product
 
     abstract public function create($jsonData);
 
-    public function insertProductDetails($jsonData) {
+    public function insertProductDetails($jsonData) 
+    {
         $this->sku = htmlspecialchars(strip_tags($jsonData->sku));
         $this->name = htmlspecialchars(strip_tags($jsonData->name));
         $this->price = htmlspecialchars(strip_tags(floatval($jsonData->price)));

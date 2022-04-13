@@ -13,29 +13,38 @@ class ProductController
 {
     private $conn;
 
-    public function __construct() {
+    public function __construct() 
+    {
         $database = new Database();
         $this->conn = $database->connect();
     }
 
-    public function create($jsonData) {
-        $productType = $jsonData->type;
+    public function create($jsonData) 
+    {
+        try {
+            $productType = $jsonData->type;
 
-        $productFactory = new ProductFactory();
-        $product = $productFactory->createProduct($productType, $this->conn);
+            $productFactory = new ProductFactory();
+            $product = $productFactory->createProduct($productType, $this->conn);
 
-        $result = $product->create($jsonData);
+            $result = $product->create($jsonData);
 
-        if ($result["success"] == true) {
-            http_response_code(200);
-        } else {
+            if ($result["success"] == true) {
+                http_response_code(200);
+            } else {
+                http_response_code(503);
+            }
+
+            echo json_encode($result);
+
+        } catch (\Exception $e) {
             http_response_code(503);
+            echo json_encode(array("message" => $e->getMessage(), "success" => false));
         }
-
-        echo json_encode($result);
     }
 
-    public function read() {
+    public function read() 
+    {
         try {
             $selectProductsQuery = "SELECT p.id, p.sku, p.name, p.price, p.type, pa.weight, pa.size, pa.width, pa.height, pa.length FROM product AS p INNER JOIN productattributes AS pa ON p.id = pa.productId WHERE p.id = pa.productId";
 
@@ -51,7 +60,8 @@ class ProductController
         } 
     }
 
-    public function massDelete($jsonData) {
+    public function massDelete($jsonData) 
+    {
         try {
             $productIds = $jsonData->ids;
 

@@ -8,11 +8,13 @@ class Book extends Product
 {
     public $weight;
 
-    public function __construct($conn) {
+    public function __construct($conn) 
+    {
         $this->conn = $conn;
     }
 
-    public function create($jsonData) {
+    public function create($jsonData) 
+    {
         try {
             $this->conn->beginTransaction();
 
